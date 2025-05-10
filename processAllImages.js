@@ -3,7 +3,7 @@ import path from 'path';
 import { parse } from 'json2csv';
 import generateXML from './generateXML.js';
 import extractTransferData from './extractTransferData.js';
-const { convertPDF } = require("pdf2png-mp");
+import { convertPDF } from 'pdf2png-mp';
 import Tesseract from 'tesseract.js';
 
 let carpetasComprobantes = {
