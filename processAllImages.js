@@ -3,8 +3,7 @@ import path from 'path';
 import { parse } from 'json2csv';
 import generateXML from './generateXML.js';
 import extractTransferData from './extractTransferData.js';
-import pdf2png from 'pdf2png-mp';
-const { convertPDF } = pdf2png;
+import pdfPoppler from 'pdf-poppler';
 import Tesseract from 'tesseract.js';
 
 let carpetasComprobantes = {
@@ -109,24 +108,38 @@ let allTransferData = [];
 
 async function convertPdfToPng(pdfPath, outputDir) {
   const fileName = path.basename(pdfPath, path.extname(pdfPath));
-  const outputFilePrefix = `${fileName}-page`;
+  const outputFileName = `${fileName}-1.png`; // Primera página del PDF
+  const outputPath = path.join(outputDir, outputFileName);
+
+  let opts = {
+    format: 'png',
+    out_dir: outputDir,
+    out_prefix: fileName,
+    page: 1,
+  };
 
   try {
-    const result = await convertPDF(pdfPath, {
-      outputFolder: outputDir,
-      outputFileMask: outputFilePrefix,
-      viewportScale: 2.0,
-    });
-
-    if (result.outputFiles.length === 0) {
-      console.error(`❌ No se generaron imágenes para ${pdfPath}`);
-      return null;
+    await pdfPoppler.convert(pdfPath, opts);
+    
+    if (!fs.existsSync(outputPath)) {
+      console.error(`❌ Error: No se encontró el archivo convertido ${outputPath}`);
+      console.error(`📂 Verifique si pdf-poppler generó un archivo con otro nombre.`);
+      
+      const possibleFiles = fs.readdirSync(outputDir).filter(file => file.startsWith(fileName) && file.endsWith('.png'));
+      
+      if (possibleFiles.length > 0) {
+        console.log(`🔍 Se encontró otro archivo generado: ${possibleFiles[0]}`);
+        return path.join(outputDir, possibleFiles[0]);
+      } else {
+        console.error(`❌ No se encontró ningún archivo PNG en la carpeta de salida.`);
+        return null;
+      }
     }
 
-    console.log(`✅ PDF convertido a PNG: ${result.outputFiles[0]}`);
-    return result.outputFiles[0]; // Usamos solo la primera página
+    console.log(`✅ PDF convertido a PNG: ${outputPath}`);
+    return outputPath;
   } catch (error) {
-    console.error(`❌ Error al convertir ${pdfPath} a PNG con pdf2png-mp:`, error);
+    console.error(`❌ Error convirtiendo ${pdfPath} a PNG:`, error);
     return null;
   }
 }
