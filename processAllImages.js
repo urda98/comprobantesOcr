@@ -3,7 +3,7 @@ import path from 'path';
 import { parse } from 'json2csv';
 import generateXML from './generateXML.js';
 import extractTransferData from './extractTransferData.js';
-import fromPath from "pdf2pic";
+const { convertPDF } = require("pdf2png-mp");
 import Tesseract from 'tesseract.js';
 
 let carpetasComprobantes = {
@@ -108,24 +108,24 @@ let allTransferData = [];
 
 async function convertPdfToPng(pdfPath, outputDir) {
   const fileName = path.basename(pdfPath, path.extname(pdfPath));
-  const outputFileName = `${fileName}.png`;
-  const outputPath = path.join(outputDir, outputFileName);
-
-  const converter = fromPath(pdfPath, {
-    density: 150,           // resolución (DPI)
-    saveFilename: fileName, // nombre base del archivo
-    savePath: outputDir,
-    format: "png",
-    width: 1024,
-    height: 1400,
-  });
+  const outputFilePrefix = `${fileName}-page`;
 
   try {
-    const result = await converter(1); // convertir solo la primera página
-    console.log(`✅ PDF convertido a PNG: ${result.path}`);
-    return result.path;
+    const result = await convertPDF(pdfPath, {
+      outputFolder: outputDir,
+      outputFileMask: outputFilePrefix,
+      viewportScale: 2.0,
+    });
+
+    if (result.outputFiles.length === 0) {
+      console.error(`❌ No se generaron imágenes para ${pdfPath}`);
+      return null;
+    }
+
+    console.log(`✅ PDF convertido a PNG: ${result.outputFiles[0]}`);
+    return result.outputFiles[0]; // Usamos solo la primera página
   } catch (error) {
-    console.error(`❌ Error al convertir ${pdfPath} a PNG con pdf2pic:`, error);
+    console.error(`❌ Error al convertir ${pdfPath} a PNG con pdf2png-mp:`, error);
     return null;
   }
 }
